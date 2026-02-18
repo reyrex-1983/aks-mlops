@@ -1,0 +1,80 @@
+# Model Training Job
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: model-training-job
+  namespace: mlops
+spec:
+  template:
+    metadata:
+      labels:
+        app: model-training
+    spec:
+      serviceAccountName: mlops-sa
+      containers:
+      - name: training
+        image: <REGISTRY>/mlops-training:latest
+        imagePullPolicy: IfNotPresent
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "1000m"
+          limits:
+            memory: "4Gi"
+            cpu: "2000m"
+        volumeMounts:
+        - name: model-storage
+          mountPath: /app/training/models
+        env:
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: model-config
+              key: LOG_LEVEL
+      volumes:
+      - name: model-storage
+        persistentVolumeClaim:
+          claimName: model-pvc
+      restartPolicy: Never
+  backoffLimit: 3
+
+---
+# CronJob for periodic model retraining
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: model-retraining-cronjob
+  namespace: mlops
+spec:
+  # Run every Sunday at 2 AM UTC
+  schedule: "0 2 * * 0"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: model-retraining
+        spec:
+          serviceAccountName: mlops-sa
+          containers:
+          - name: retraining
+            image: <REGISTRY>/mlops-training:latest
+            imagePullPolicy: IfNotPresent
+            resources:
+              requests:
+                memory: "2Gi"
+                cpu: "1000m"
+              limits:
+                memory: "4Gi"
+                cpu: "2000m"
+            volumeMounts:
+            - name: model-storage
+              mountPath: /app/training/models
+          volumes:
+          - name: model-storage
+            persistentVolumeClaim:
+              claimName: model-pvc
+          restartPolicy: OnFailure

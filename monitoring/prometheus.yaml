@@ -1,0 +1,43 @@
+# Prometheus ServiceMonitor
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: mlops-metrics
+  namespace: mlops
+spec:
+  selector:
+    matchLabels:
+      app: model-serving
+  endpoints:
+  - port: http
+    interval: 30s
+    path: /metrics
+
+---
+# PrometheusRule for alerts
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: mlops-alerts
+  namespace: mlops
+spec:
+  groups:
+  - name: mlops.rules
+    interval: 30s
+    rules:
+    - alert: HighPredictionLatency
+      expr: histogram_quantile(0.95, prediction_duration_seconds) > 1.0
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "High prediction latency detected"
+        description: "95th percentile latency > 1 second"
+    
+    - alert: ModelServingDown
+      expr: up{job="model-serving"} == 0
+      for: 2m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Model serving endpoint is down"

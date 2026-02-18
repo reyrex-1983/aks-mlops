@@ -1,0 +1,10 @@
+README.md
+QUICKSTART.md
+.gitignore
+requirements-dev.txt
+Dockerfile.training
+Dockerfile.serving
+deployment/
+monitoring/
+scripts/
+.github/

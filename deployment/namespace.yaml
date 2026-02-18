@@ -1,0 +1,18 @@
+# Namespace for the MLOps project
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mlops
+  labels:
+    name: mlops
+
+---
+# ConfigMap for model configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: model-config
+  namespace: mlops
+data:
+  MODEL_DIR: /app/models
+  LOG_LEVEL: INFO
